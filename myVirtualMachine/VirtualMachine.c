@@ -84,43 +84,12 @@ int decode()
 int execution(unsigned char opNum, unsigned char opBody, unsigned char opType, unsigned char isImm)
 {
 	unsigned char opHead = opNum | (opType << 5);
-	if (opType == 1)
-	{
-		unsigned char rS = (opBody & RS_MASK) >> 4;
-		switch (opHead)
-		{
-		case STORE:
-			mem.DataArea[reg.SP] = (reg.Reg[rS]>>8)&0xff;
-			mem.DataArea[reg.SP + 1] = (unsigned char)(reg.Reg[rS]&0xff);
-			reg.SP += 2;
-			break;
-		case LOAD:
-			reg.Reg[rS] = mem.DataArea[reg.SP-2]; //SP가 증가한 상태이기 때문에 SP-2 , SP-1의 데이터를 가져와야한다.
-			reg.Reg[rS] <<= 8;
-			reg.Reg[rS] |= mem.DataArea[reg.SP-1];
-			reg.SP -= 2;
-			break;
-		case INC:
-			reg.Reg[rS]++;
-			break;
-		case DEC:
-			reg.Reg[rS]--;
-			break;
-		case NOT:
-			reg.Reg[rS] = ~reg.Reg[rS];
-			break;
-		default:
-			printf("opType 1 >> opNum Error!\n");
-			return 2;
-			break;
-		}
-		return 0;
-	}
-	else if (opType == 0)
+	
+	if (opType == 0)
 	{
 		unsigned char rS = (opBody & RS_MASK) >> 4;
 		unsigned char rD = (opBody & RD_MASK);
-		unsigned short SourceValue[2] = { reg.Reg[rS],(unsigned short)rS }; // imm bit 가 1 이라면 rS의 값을 1이 아니라면 reg.Reg[rS]의 값을 사용
+		short SourceValue[2] = { reg.Reg[rS],(short)rS }; // imm bit 가 1 이라면 rS의 값을 1이 아니라면 reg.Reg[rS]의 값을 사용
 		switch (opHead)
 		{
 		case SUB:
@@ -150,12 +119,102 @@ int execution(unsigned char opNum, unsigned char opBody, unsigned char opType, u
 		case SHR:
 			reg.Reg[rD] >>= SourceValue[isImm];
 			break;
+		case CMP:
+			if (reg.Reg[rD] - SourceValue[isImm] == 0)
+			{
+				reg.STATUS = ZERO_BIT;
+			}
+			else if (reg.Reg[rD] - SourceValue[isImm] > 0)
+			{
+				if (reg.Reg[rD] < 0 && SourceValue[isImm]>0)
+				{
+					reg.STATUS = OVER_BIT;
+				}
+			}
+			else
+			{
+				reg.STATUS = SIGN_BIT;
+				if (reg.Reg[rD] > 0 && SourceValue[isImm] < 0)
+				{
+					reg.STATUS |= OVER_BIT;
+				}
+			}
+			break;
 		default:
-			printf("opType 2 >> opNum Error!\n");
+			printf("opType 0 >> opNum Error!\n");
 			return 2;
 			break;
 		}
 		return 0;
+	}
+	else if (opType == 1)
+	{
+		unsigned char rS = (opBody & RS_MASK) >> 4;
+		switch (opHead)
+		{
+		case STORE:
+			mem.DataArea[reg.SP] = (reg.Reg[rS] >> 8) & 0xff;
+			mem.DataArea[reg.SP + 1] = (unsigned char)(reg.Reg[rS] & 0xff);
+			reg.SP += 2;
+			break;
+		case LOAD:
+			reg.Reg[rS] = mem.DataArea[reg.SP - 2]; //SP가 증가한 상태이기 때문에 SP-2 , SP-1의 데이터를 가져와야한다.
+			reg.Reg[rS] <<= 8;
+			reg.Reg[rS] |= mem.DataArea[reg.SP - 1];
+			reg.SP -= 2;
+			break;
+		case INC:
+			reg.Reg[rS]++;
+			break;
+		case DEC:
+			reg.Reg[rS]--;
+			break;
+		case NOT:
+			reg.Reg[rS] = ~reg.Reg[rS];
+			break;
+		default:
+			printf("opType 1 >> opNum Error!\n");
+			return 2;
+			break;
+		}
+		return 0;
+	}
+	else if (opType == 2)
+	{
+		unsigned char rD = (opBody & RD_MASK);
+		unsigned char status_a;
+		unsigned char status_b;
+		switch (opHead)
+		{
+		case B:
+			reg.PC += reg.Reg[rD];
+			break;
+		case BEQ:
+			status_a = ZERO_BIT&STATUS_MASK;
+			if (status_a == reg.STATUS)
+				reg.PC += reg.Reg[rD];
+			break;
+		case BNE:
+			status_a = (ZERO_BIT)&STATUS_MASK;
+			if (status_a != reg.STATUS)
+				reg.PC += reg.Reg[rD];
+			break;
+		case BL:
+			status_a = (SIGN_BIT | ~ZERO_BIT | ~OVER_BIT)&STATUS_MASK;
+			status_b = (~SIGN_BIT | ~ZERO_BIT | OVER_BIT)&STATUS_MASK;
+			if (status_a==reg.STATUS || status_b==reg.STATUS)
+				reg.PC += reg.Reg[rD];
+			break;
+		case BG:
+			status_a = (~SIGN_BIT | ~ZERO_BIT | ~OVER_BIT)&STATUS_MASK;
+			status_b = (SIGN_BIT | ~ZERO_BIT | OVER_BIT)&STATUS_MASK;
+			if (status_a == reg.STATUS || status_b == reg.STATUS)
+			break;
+		default:
+			printf("opType 2 >> opNum Error!\n");
+			return 3;
+			break;
+		}
 	}
 	else
 	{
