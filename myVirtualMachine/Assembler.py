@@ -1,12 +1,16 @@
 # -*- coding: cp949 -*-
 import sys
-type0 = {"ADD":0x01,"SUB":0x02,"MUL":0x03,"DIV":0x04,"OR":0x05,"AND":0x06,"XOR":0x07,"SHL":0x08,"SHR":0x09,"CMP":0x0A}
+type0 = {"ADD" :0x01,"SUB" :0x02,"MUL" :0x03,"DIV" :0x04,"OR" :0x05,"AND" :0x06,"XOR" :0x07,"SHL" :0x08,"SHR" :0x09,"CMP" :0x0A
+         "ADDI":0x81,"SUBI":0x82,"MULI":0x83,"DIVI":0x84,"ORI":0x85,"ANDI":0x86,"XORI":0x87,"SHLI":0x88,"SHRI":0x89,"CMPI":0x8A}
 type1 = {"STORE":0x21,"LOAD":0x22,"INC":0x23,"DEC":0x24,"NOT":0x25}
 type2 = {"B":0x48,"BEQ":0x49,"BNE":0x4A,"BL":0x4B,"BG":0x4C}
 instructions = [type0,type1,type2]
 register = []
 for num in range(13):
     register.append("r"+str(num))
+register.append("ZERO") ##zero 레지스터
+register.append("SP") ##sp 레지스터
+register.appedn("BP") ##bp 레지스터
 path = input("input you *.ua >>> ")
 ext = path.split(".")[1]
 if ext != "ua" :
@@ -34,7 +38,10 @@ def check_instruction(parsing_data_item):
         if instruction[0] in typeX:
             if typeX == type0:
                 if len(instruction) == 3:
-                    if register.count(instruction[1]) == 0 or register.count(instruction[2]) == 0:
+                    if register.count(instruction[1]) == 0:
+                        print("error2")
+                        return False
+                    elif register.count(instruction[1]) != 0 and register.count(instruction[2]) == 0 and not insstruction[2].isnumeric():
                         print("error2")
                         return False
                     return True
